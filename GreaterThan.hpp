@@ -148,15 +148,15 @@ void setup_auxiliary_for_greater_than(FHESecKey *sk) {
 
 /// Privately comparing two encrypted values (in a proper form).
 /// The return value is determined by GreaterThanArgs.
-Ctxt greater_than(Ctxt const& ctx_a, long b,
+Ctxt greater_than(Ctxt const& ctx_a, Ctxt const& ctx_b,
                   GreaterThanArgs const& args,
                   FHEcontext const& context) {
     check_auxiliary(ctx_a.getPubKey()); //sanity check
-    NTL::ZZX Xb = prepare_Xb(b, args, context);
+    Ctxt b_copy(ctx_b);
+    smart_negate_degree(&b_copy, context); // X^{-b}
+    b_copy.multiplyBy(ctx_a); // X^a * X^{-b}
 
-    Ctxt result(ctx_a);
-    result.multByConstant(Xb);
-
+    b_copy.multByConstant((args.mu1 - args.one_half) * args.test_v);
     NTL::ZZX r;
     if (args.randomized) {
         r = generate_random(context);
@@ -164,8 +164,8 @@ Ctxt greater_than(Ctxt const& ctx_a, long b,
     } else {
         NTL::SetCoeff(r, 0, args.one_half); // Set the constant term 1/2
     }
-    result.addConstant(r);
-    return result;
+    b_copy.addConstant(r);
+    return b_copy;
 }
 
 Ctxt greater_than(Ctxt const& ctx_a, long b,
