@@ -168,9 +168,24 @@ Ctxt greater_than(Ctxt const& ctx_a, long b,
     return result;
 }
 
-Ctxt greater_than(Ctxt const& ctx_a, long b, FHEcontext const& context) {
-    GreaterThanArgs args = create_greater_than_args(0L, 1L, context);
-    return greater_than(ctx_a, b, args, context);
+Ctxt greater_than(Ctxt const& ctx_a, long b,
+                  GreaterThanArgs const& args,
+                  FHEcontext const& context) {
+    check_auxiliary(ctx_a.getPubKey()); //sanity check
+    NTL::ZZX Xb = prepare_Xb(b, args, context);
+
+    Ctxt result(ctx_a);
+    result.multByConstant(Xb);
+
+    NTL::ZZX r;
+    if (args.randomized) {
+        r = generate_random(context);
+        NTL::SetCoeff(r, 0, args.one_half); // Set the constant term 1/2
+    } else {
+        NTL::SetCoeff(r, 0, args.one_half); // Set the constant term 1/2
+    }
+    result.addConstant(r);
+    return result;
 }
 
 /// Privately comparing two encrypted values (in a proper form).
